@@ -33,7 +33,7 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
     def fit(self, X, y):
         words = {PAD: 0, UNK: 1}
         chars = {PAD: 0, UNK: 1}
-        tags  = {PAD: 0}
+        tags  = {PAD: 0, UNK: 1}
 
         for w in set(itertools.chain(*X)) | set(self.vocab_init):
             if not self.char_feature:
