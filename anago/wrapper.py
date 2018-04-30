@@ -8,7 +8,7 @@ from anago.models import SeqLabeling
 from anago.preprocess import prepare_preprocessor, WordPreprocessor, filter_embeddings
 from anago.tagger import Tagger
 from anago.trainer import Trainer
-
+import anago.config as cfg
 
 class Sequence(object):
 
@@ -20,7 +20,7 @@ class Sequence(object):
                  word_lstm_units=100, dropout=0.5, char_feature=True, crf=True,
                  batch_size=20, optimizer='adam', learning_rate=0.001, lr_decay=0.9,
                  clip_gradients=5.0, max_epoch=15, early_stopping=True, patience=3,
-                 train_embeddings=True, max_checkpoints_to_keep=5, log_dir=None,
+                 train_embeddings=True, max_checkpoints_to_keep=5, log_dir=cfg.ANAGO_CHECKPOINT_DIR,
                  embeddings=()):
 
         self.model_config = ModelConfig(char_emb_size, word_emb_size, char_lstm_units,
