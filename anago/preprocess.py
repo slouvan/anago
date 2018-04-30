@@ -18,7 +18,7 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
                  char_feature=True,
                  vocab_init=None,
                  padding=True,
-                 return_lengths=True):
+                 return_lengths=False):
 
         self.lowercase = lowercase
         self.num_norm = num_norm
