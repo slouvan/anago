@@ -58,7 +58,7 @@ class Tagger(object):
         prob = self._get_prob(pred)
         res = self._build_response(words, tags, prob)
 
-        return res
+        return res, tags, prob, res
 
     def tag(self, words):
         """Tags a sentence named entities.
