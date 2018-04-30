@@ -17,7 +17,7 @@ def get_callbacks(log_dir=None, valid=(), tensorboard=True, eary_stopping=True):
         list: list of callbacks
     """
     callbacks = []
-
+    print("Callback log dir {}".format(log_dir))
     if log_dir and tensorboard:
         if not os.path.exists(log_dir):
             print('Successfully made a directory: {}'.format(log_dir))
@@ -35,7 +35,7 @@ def get_callbacks(log_dir=None, valid=(), tensorboard=True, eary_stopping=True):
         file_name = '_'.join(['model_weights', '{epoch:02d}', '{f1:2.2f}']) + '.h5'
         save_callback = ModelCheckpoint(os.path.join(log_dir, file_name),
                                         monitor='f1',
-                                        save_weights_only=True)
+                                        save_weights_only=True, save_best_only=True, mode='max')
         callbacks.append(save_callback)
 
     if eary_stopping:
@@ -118,6 +118,21 @@ class F1score(Callback):
         self.valid_steps = valid_steps
         self.valid_batches = valid_batches
         self.p = preprocessor
+        self.f1s = []
+
+    def on_train_begin(self, logs={}):
+        return
+
+    def _get_sequence_length(self, seqs):
+        seq_length = []
+        for seq in seqs:
+            #print(type(seq))
+            if len(np.argwhere(seq == 0)) > 0 :
+                seq_length.append(np.argwhere(seq == 0)[0][0])
+            else:
+                seq_length.append(len(seq))
+
+        return seq_length
 
     def on_epoch_end(self, epoch, logs={}):
         correct_preds, total_correct, total_preds = 0., 0., 0.
@@ -125,24 +140,35 @@ class F1score(Callback):
             if i == self.valid_steps:
                 break
             y_true = label
+            #print(y_true[0])
+
             y_true = np.argmax(y_true, -1)
             sequence_lengths = data[-1] # shape of (batch_size, 1)
             sequence_lengths = np.reshape(sequence_lengths, (-1,))
             #y_pred = np.asarray(self.model_.predict(data, sequence_lengths))
+            #print("EPOCH END : TYPE : {} LEN : {} SHAPE : {} {}".format(type(data), len(data),data[0].shape,data[1].shape))
             y_pred = self.model.predict_on_batch(data)
             y_pred = np.argmax(y_pred, -1)
+            #print("GOLD : {}".format(y_true[0]))
+            #print("PREDICTION {}: ".format(y_pred[0]))
+            #print("Type : {} Shape : {}".format(type(y_pred), y_pred.shape))
+            #print("Sequence length shape : {}".format(sequence_lengths.shape))
+            seq_lengths = np.reshape(self._get_sequence_length(y_pred), (-1,))
+            #print("Sequence length shape NEW : {}".format(seq_lengths.shape))
+            y_pred = [self.p.inverse_transform(y[:l]) for y, l in zip(y_pred, seq_lengths)]
+            y_true = [self.p.inverse_transform(y[:l]) for y, l in zip(y_true, seq_lengths)]
 
-            y_pred = [self.p.inverse_transform(y[:l]) for y, l in zip(y_pred, sequence_lengths)]
-            y_true = [self.p.inverse_transform(y[:l]) for y, l in zip(y_true, sequence_lengths)]
-
-            a, b, c = self.count_correct_and_pred(y_true, y_pred, sequence_lengths)
+            a, b, c = self.count_correct_and_pred(y_true, y_pred, seq_lengths)
             correct_preds += a
             total_preds += b
             total_correct += c
 
         f1 = self._calc_f1(correct_preds, total_correct, total_preds)
         print(' - f1: {:04.2f}'.format(f1 * 100))
-        logs['f1'] = f1
+        self.f1s.append(f1)
+        logs['f1'] = max(self.f1s)
+
+        return
 
     def _calc_f1(self, correct_preds, total_correct, total_preds):
         p = correct_preds / total_preds if correct_preds > 0 else 0
