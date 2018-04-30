@@ -34,23 +34,24 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
         words = {PAD: 0, UNK: 1}
         chars = {PAD: 0, UNK: 1}
         tags  = {PAD: 0, UNK: 1}
-
+        print(self.lowercase)
         for w in set(itertools.chain(*X)) | set(self.vocab_init):
+            w = self._lower(w)
+            w = self._normalize_num(w)
+            if w not in words:
+                words[w] = len(words)
+
             if not self.char_feature:
                 continue
             for c in w:
                 if c not in chars:
                     chars[c] = len(chars)
 
-            w = self._lower(w)
-            w = self._normalize_num(w)
-            if w not in words:
-                words[w] = len(words)
 
         for t in itertools.chain(*y):
             if t not in tags:
                 tags[t] = len(tags)
-
+        #print("VOCAB : {}".format(words))
         self.vocab_word = words
         self.vocab_char = chars
         self.vocab_tag  = tags
@@ -117,9 +118,16 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
             sents = [words, chars]
 
         if self.return_lengths:
+            #print("Di dalem return lengts {}".format(sents[0][0]))
             lengths = np.asarray(lengths, dtype=np.int32)
+            #print("Di dalem return lengts LENGTH SHAPE {}".format(lengths.shape))
             lengths = lengths.reshape((lengths.shape[0], 1))
+            #print("ISI LENGTH : {}".format(lengths))
+            # dimension of length (jumlah_training_data, 1) isinya : [[15], [33]]
             sents.append(lengths)
+        #print("Di luar return lengths {}".format(sents[0]))
+        #print("X :{}".format(X[0]))
+        #print(y.shape)
 
         return (sents, y) if y is not None else sents
 
@@ -141,16 +149,26 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
 
     def pad_sequence(self, word_ids, char_ids, labels=None):
         if labels:
+            #print("LABELS 0 : {} length : {} ".format(labels, len(labels)))
             labels, _ = pad_sequences(labels, 0)
             labels = np.asarray(labels)
+            #print("LABELS 1 : {} length : {} ".format(labels, len(labels)))
             labels = dense_to_one_hot(labels, len(self.vocab_tag), nlevels=2)
+            #print("LABELS 2 : {} length : {} SHAPE : {}".format(labels, len(labels), labels.shape))
+            # labels dimension (jumlah_training_data, max_panjang_kalimat, jumlah_label)
 
         word_ids, sequence_lengths = pad_sequences(word_ids, 0)
         word_ids = np.asarray(word_ids)
+        #print("Njero pad_sequence {} ".format(word_ids[0])) # Numpy array [[1,2,3], [4,5,6]]
+        #print("Type : {} ".format(type(word_ids[0]) ))  # [[1,2,3], [4,5,6]]
+        #print("SHAPE 1 : {}".format(word_ids.shape))
 
+        #print("LABEL : {}".format(labels[0]))
         if self.char_feature:
             char_ids, word_lengths = pad_sequences(char_ids, pad_tok=0, nlevels=2)
             char_ids = np.asarray(char_ids)
+            #print("SHAPE INPUT WORD_IDS: {}   CHAR_IDS: {}".format(word_ids.shape, char_ids.shape ))
+            # dimensi word_ids : (jml_training_data, max_panjang_kalimat) char_ids : (jml_training_data, max_panjang_kalimat, max_panjang_kata)
             return [word_ids, char_ids], labels
         else:
             return word_ids, labels
@@ -255,9 +273,14 @@ def filter_embeddings(embeddings, vocab, dim):
         numpy array: an array of word embeddings.
     """
     _embeddings = np.zeros([len(vocab), dim])
+    for idx in range(_embeddings.shape[0]):
+        np.random.seed(1234)
+        _embeddings[idx] = np.random.uniform(-0.25, 0.25, _embeddings.shape[1])
+
     for word in vocab:
         if word in embeddings:
             word_idx = vocab[word]
             _embeddings[word_idx] = embeddings[word]
+
 
     return _embeddings
