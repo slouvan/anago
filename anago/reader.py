@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def load_data_and_labels(filename):
+def load_data_and_labels(filename, lowercase=False):
     """Loads data and label from a file.
 
     Args:
@@ -39,6 +39,8 @@ def load_data_and_labels(filename):
         words, tags = [], []
         for line in f:
             line = line.rstrip()
+            if lowercase :
+                line = line.lower()
             if len(line) == 0 or line.startswith('-DOCSTART-'):
                 if len(words) != 0:
                     sents.append(words)
@@ -122,6 +124,7 @@ def batch_iter(data, labels, batch_size, shuffle=True, preprocessor=None):
         while True:
             # Shuffle the data at each epoch
             if shuffle:
+                np.random.seed(1234)
                 shuffle_indices = np.random.permutation(np.arange(data_size))
                 shuffled_data = data[shuffle_indices]
                 shuffled_labels = labels[shuffle_indices]
@@ -134,8 +137,14 @@ def batch_iter(data, labels, batch_size, shuffle=True, preprocessor=None):
                 end_index = min((batch_num + 1) * batch_size, data_size)
                 X, y = shuffled_data[start_index: end_index], shuffled_labels[start_index: end_index]
                 if preprocessor:
+                    #Xx, Yy = preprocessor.transform(X, y)
+                    #print("Type {} ".format(type(Xx)))
+                    #print("INSIDE BATCH _ITER PREPROCESSOR X : {} {} Y : {}".format(Xx[0].shape, Xx[1].shape,Yy.shape))
+
                     yield preprocessor.transform(X, y)
                 else:
+
+                    #print("INSIDE BATCH _ITER NO PREPROCESSOR{}".format(y.shape))
                     yield X, y
 
     return num_batches_per_epoch, data_generator()
