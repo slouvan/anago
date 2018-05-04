@@ -48,6 +48,7 @@ def load_data_and_labels(filename, lowercase=False):
                     words, tags = [], []
             else:
                 word, tag = line.split('\t')
+                #print(word+"\t"+tag)
                 words.append(word)
                 tags.append(tag)
     return np.asarray(sents), np.asarray(labels)
@@ -114,8 +115,8 @@ def load_glove(file):
 
 
 def batch_iter(data, labels, batch_size, shuffle=True, preprocessor=None):
-    num_batches_per_epoch = int((len(data) - 1) / batch_size) + 1
 
+    num_batches_per_epoch = int((len(data) - 1) / batch_size) + 1
     def data_generator():
         """
         Generates a batch iterator for a dataset.

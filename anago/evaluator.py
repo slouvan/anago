@@ -17,7 +17,7 @@ class Evaluator(object):
         # Prepare test data(steps, generator)
         train_steps, train_batches = batch_iter(x_test,
                                                 y_test,
-                                                batch_size=20,  # Todo: if batch_size=1, eval does not work.
+                                                batch_size=len(x_test),  # Todo: if batch_size=1, eval does not work.
                                                 shuffle=False,
                                                 preprocessor=self.preprocessor)
 

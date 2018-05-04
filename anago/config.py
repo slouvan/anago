@@ -1,7 +1,7 @@
 import json
 
 
-ANAGO_CHECKPOINT_DIR = "/Users/slouvan/sandbox/anago/checkpoints/models/TRASHES"
+#ANAGO_CHECKPOINT_DIR = "/Users/slouvan/sandbox/anago/checkpoints/models/WE_CE_FIXED_03_05_ATIS_RANDOM"
 
 class ModelConfig(object):
     """Wrapper class for model hyperparameters."""

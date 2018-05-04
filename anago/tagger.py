@@ -14,6 +14,7 @@ class Tagger(object):
     def predict(self, words):
         length = np.array([len(words)])
         X = self.preprocessor.transform([words])
+        #print(X)
         pred = self.model.predict(X, length)
 
         return pred
@@ -59,6 +60,9 @@ class Tagger(object):
         res = self._build_response(words, tags, prob)
 
         return res, tags, prob, res
+
+    def analyze_sents(self, words):
+        pass
 
     def tag(self, words):
         """Tags a sentence named entities.

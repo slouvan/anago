@@ -51,11 +51,13 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
         for t in itertools.chain(*y):
             if t not in tags:
                 tags[t] = len(tags)
-        #print("VOCAB : {}".format(words))
+        #print("VOCAB BOSTON : {}".format(words['Boston']))
+
         self.vocab_word = words
         self.vocab_char = chars
         self.vocab_tag  = tags
-
+        print("vocab char {}".format(self.vocab_char))
+        print("vocab tag {}".format(self.vocab_tag))
         return self
 
     def transform(self, X, y=None):
@@ -110,7 +112,8 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
                 chars.append(char_ids)
 
         if y is not None:
-            y = [[self.vocab_tag[t] for t in sent] for sent in y]
+            #y = [[self.vocab_tag[t] for t in sent] for sent in y]
+            y = [[self.vocab_tag[t] if t in self.vocab_tag else self.vocab_tag[UNK] for t in sent] for sent in y]
 
         if self.padding:
             sents, y = self.pad_sequence(words, chars, y)
@@ -134,6 +137,10 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
     def inverse_transform(self, y):
         indice_tag = {i: t for t, i in self.vocab_tag.items()}
         return [indice_tag[y_] for y_ in y]
+
+    def inverse_id_to_word(self, x):
+        indice_word = {i: t for t, i in self.vocab_word.items()}
+        return [indice_word[x_] for x_ in x]
 
     def _get_char_ids(self, word):
         return [self.vocab_char.get(c, self.vocab_char[UNK]) for c in word]
@@ -256,7 +263,7 @@ def dense_to_one_hot(labels_dense, num_classes, nlevels=1):
 
 
 def prepare_preprocessor(X, y, use_char=True, vocab_init=None):
-    p = WordPreprocessor(vocab_init=vocab_init)
+    p = WordPreprocessor(char_feature=use_char, vocab_init=vocab_init)
     p.fit(X, y)
 
     return p

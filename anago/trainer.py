@@ -21,13 +21,13 @@ rn.seed(1234)
 # Rest of code follows .:w
 # Prepare training and validation data(steps, generatora
 # print("INSIDE TRAIN function {}".format(x_train[0]) )
-session_conf = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
-from keras import backend as K
+#session_conf = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
+#from keras import backend as K
 
 
-tf.set_random_seed(1234)
-sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
-K.set_session(sess)
+#tf.set_random_seed(1234)
+#sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
+#K.set_session(sess)
 
 
 from anago.reader import batch_iter
@@ -49,7 +49,7 @@ class Trainer(object):
     def __init__(self,
                  model,
                  training_config,
-                 checkpoint_path=cfg.ANAGO_CHECKPOINT_DIR,
+                 checkpoint_path='',
                  save_path='',
                  tensorboard=True,
                  preprocessor=None,
@@ -57,7 +57,6 @@ class Trainer(object):
 
         self.model = model
         self.training_config = training_config
-        print("HELLO {}".format(cfg.ANAGO_CHECKPOINT_DIR))
         self.checkpoint_path = checkpoint_path
         self.save_path = save_path
         self.tensorboard = tensorboard
@@ -88,7 +87,9 @@ class Trainer(object):
                                   valid=(valid_steps, valid_batches, self.preprocessor))
 
 
-        self.model.fit_generator(generator=train_batches,
+        history = self.model.fit_generator(generator=train_batches,
                                  steps_per_epoch=train_steps,
                                  epochs=self.training_config.max_epoch,
                                  callbacks=callbacks)
+        print(history.history.keys())
+
