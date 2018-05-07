@@ -153,8 +153,9 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
                 y = [[self.vocab_tag[t] if t in self.vocab_tag else self.vocab_tag[UNK] for t in sent] for sent in y]
 
             if self.padding:
-                print("WORDS : {}".format(words))
-                print("CHARS : {}".format(chars))
+                #print("WORDS : {}".format(words))
+                #print("CHARS : {}".format(chars))
+                #print("NERS  : {}".format(ners))
                 sents, y = self.pad_sequence(words, chars, y)
             else:
                 sents = [words, chars]
@@ -210,10 +211,13 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
                 y = [[self.vocab_tag[t] if t in self.vocab_tag else self.vocab_tag[UNK] for t in sent] for sent in y]
 
             if self.padding:
+                #print("WORDS : {}".format(words))
+                #print("CHARS : {}".format(chars))
+                #print("NERS  : {}".format(ners))
                 if not self.ner_feature :
                     sents, y = self.pad_sequence(words, chars, y)
                 else :
-                    sents, y = self.pad_sequence(words, ners, chars, y)
+                    sents, y = self.pad_sequence_with_ner(words, ners, chars, y)
             else:
                 sents = [words, chars]
 
@@ -277,7 +281,7 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
         else:
             return word_ids, labels
 
-    def pad_sequence(self, word_ids, ner_ids, char_ids, labels=None):
+    def pad_sequence_with_ner(self, word_ids, ner_ids, char_ids, labels=None):
         if labels:
             #print("LABELS 0 : {} length : {} ".format(labels, len(labels)))
             labels, _ = pad_sequences(labels, 0)
