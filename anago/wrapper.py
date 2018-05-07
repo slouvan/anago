@@ -11,6 +11,7 @@ from anago.trainer import Trainer
 import anago.config as cfg
 from anago import utils
 from anago.reader import load_data_and_labels, load_glove
+import sys
 
 class Sequence(object):
 
@@ -23,12 +24,12 @@ class Sequence(object):
                  batch_size=20, optimizer='adam', learning_rate=0.001, lr_decay=0.9,
                  clip_gradients=5.0, max_epoch=15, early_stopping=True, patience=3,
                  train_embeddings=True, max_checkpoints_to_keep=5, log_dir='',
-                 embeddings=(), config_file = None):
+                 embeddings=(), config_file = None, ner_feature = False):
 
         if config_file is not None:
             conf = self.load_config(config_file)
             self.model_config = ModelConfig(conf['char_emb_size'], conf['word_emb_size'], conf['char_lstm_units'],
-                                            conf['word_lstm_units'], conf['dropout'], True if conf['char_feature'] == 1 else False, True if conf['crf'] == 1 else False)
+                                            conf['word_lstm_units'], conf['dropout'], True if conf['char_feature'] == 1 else False, True if conf['crf'] == 1 else False, True if conf['ner_feature'] == 1 else False, conf['ner_emb_size'])
             self.training_config = TrainingConfig(conf['batch_size'], conf['optimizer'], conf['learning_rate'],
                                                   conf['lr_decay'], conf['clip_gradients'], conf['max_epoch'],
                                                   conf['early_stopping'], conf['patience'], conf['train_embeddings'],
@@ -37,6 +38,8 @@ class Sequence(object):
             self.p = None
             self.log_dir = conf['log_dir']
             self.char_feature = True if conf['char_feature'] == 1 else False
+            self.ner_feature = True if conf['ner_feature'] == 1 else False
+
             if conf['use_pretrained_embedding'] == 1:
                 self.embeddings = load_glove(conf['embeddings_file'])
             else:
@@ -63,14 +66,15 @@ class Sequence(object):
         conf = utils.load_config_file(file_name)
         return conf
     def train(self, x_train, y_train, x_valid=None, y_valid=None, vocab_init=None):
-        self.p = prepare_preprocessor(x_train, y_train, use_char=self.char_feature, vocab_init=vocab_init)
+        self.p = prepare_preprocessor(x_train, y_train, use_char=self.char_feature, vocab_init=vocab_init, ner_feature = self.ner_feature)
         embeddings = filter_embeddings(self.embeddings, self.p.vocab_word,
                                        self.model_config.word_embedding_size)
         self.model_config.vocab_size = len(self.p.vocab_word)
         self.model_config.char_vocab_size = len(self.p.vocab_char)
+        if self.ner_feature :
+            self.model_config.ner_vocab_size = len(self.p.vocab_ner_feature)
 
         self.model = SeqLabeling(self.model_config, embeddings, len(self.p.vocab_tag))
-
         trainer = Trainer(self.model,
                           self.training_config,
                           checkpoint_path=self.log_dir,
