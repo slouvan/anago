@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def load_data_and_labels(filename, lowercase=False):
+def load_data_and_labels(filename, lowercase=False, ner_feature=False):
     """Loads data and label from a file.
 
     Args:
@@ -36,21 +36,34 @@ def load_data_and_labels(filename, lowercase=False):
     """
     sents, labels = [], []
     with open(filename) as f:
-        words, tags = [], []
+        words, ners, tags = [], [], []
         for line in f:
             line = line.rstrip()
             if lowercase :
                 line = line.lower()
             if len(line) == 0 or line.startswith('-DOCSTART-'):
                 if len(words) != 0:
-                    sents.append(words)
-                    labels.append(tags)
-                    words, tags = [], []
+                    if not ner_feature:
+                        sents.append(words)
+                        labels.append(tags)
+                        words, tags = [], []
+                    else :
+                        sents.append([words, ners])
+                        labels.append(tags)
+                        words, ners, tags = [], [],[]
             else:
-                word, tag = line.split('\t')
-                #print(word+"\t"+tag)
-                words.append(word)
-                tags.append(tag)
+                if not ner_feature:
+                    word, tag = line.split('\t')
+                    #print(word+"\t"+tag)
+                    words.append(word)
+                    tags.append(tag)
+                else :
+                    word, ner, tag = line.split('\t')
+                    # print(word+"\t"+tag)
+                    words.append(word)
+                    ners.append(ner)
+                    tags.append(tag)
+
     return np.asarray(sents), np.asarray(labels)
 
 

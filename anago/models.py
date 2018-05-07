@@ -59,6 +59,7 @@ class SeqLabeling(BaseModel):
         self.config = config
         word_embeddings = None
         char_embeddings = None
+        ner_embedings = None
         if embeddings is None:
             print("THE VOCABULARY SIZE 0 IS {}".format(config.vocab_size))
             word_embeddings = Embedding(input_dim=config.vocab_size,
@@ -95,7 +96,22 @@ class SeqLabeling(BaseModel):
             char_embeddings = Lambda(lambda x: K.reshape(x, shape=[-1, s[1], 2 * config.num_char_lstm_units]))(char_embeddings)
 
             # combine characters and word
-            x = Concatenate(axis=-1)([word_embeddings, char_embeddings])
+            if not self.config.ner_feature :
+                x = Concatenate(axis=-1)([word_embeddings, char_embeddings])
+            else :
+                ner_ids = Input(batch_shape=(None, None), dtype='int32')
+                _ner_embeddings = np.zeros([config.ner_vocab_size, config.ner_embedding_size])
+                for idx in range(_ner_embeddings.shape[0]):
+                    np.random.seed(1234)
+                    _ner_embeddings[idx] = np.random.uniform(-0.25, 0.25, _ner_embeddings.shape[1])
+
+                ner_embeddings = Embedding(input_dim=config.ner_vocab_size,
+                                            output_dim=config.ner_embedding_size,
+                                            mask_zero=True, weights=[_ner_embeddings]
+                                            )(ner_ids)
+
+                x = Concatenate(axis=-1)([word_embeddings, ner_embeddings, char_embeddings])
+
             x = Dropout(config.dropout)(x)
             x = Bidirectional(LSTM(units=config.num_word_lstm_units, return_sequences=True))(x)
         else :
@@ -109,7 +125,10 @@ class SeqLabeling(BaseModel):
 
         #sequence_lengths = Input(batch_shape=(None, 1), dtype='int32')
         if self.config.char_feature :
-            self.model = Model(inputs=[word_ids, char_ids], outputs=[pred])
+            if not self.config.ner_feature :
+                self.model = Model(inputs=[word_ids, char_ids], outputs=[pred])
+            else :
+                self.model = Model(inputs=[word_ids, ner_ids,  char_ids], outputs=[pred])
         else :
             print("WITHOUT CHARACTER MODELS.PY")
             self.model = Model(inputs=word_ids, outputs=pred)

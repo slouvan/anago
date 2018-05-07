@@ -7,14 +7,16 @@ class ModelConfig(object):
     """Wrapper class for model hyperparameters."""
 
     def __init__(self, char_emb_size=25, word_emb_size=100, char_lstm_units=25,
-                 word_lstm_units=100, dropout=0.5, char_feature=True, crf=True):
+                 word_lstm_units=100, dropout=0.5, char_feature=True, crf=True, ner_feature = False, ner_emb_size = 25):
 
         # Number of unique words in the vocab (plus 2, for <UNK>, <PAD>).
         self.vocab_size = None
         self.char_vocab_size = None
+        self.ner_vocab_size = None
 
         # LSTM input and output dimensionality, respectively.
         self.char_embedding_size = char_emb_size
+        self.ner_embedding_size = ner_emb_size
         self.num_char_lstm_units = char_lstm_units
         self.word_embedding_size = word_emb_size
         self.num_word_lstm_units = word_lstm_units
@@ -24,6 +26,7 @@ class ModelConfig(object):
 
         # If True, use character feature.
         self.char_feature = char_feature
+        self.ner_feature = ner_feature
 
         # If True, use crf.
         self.crf = crf

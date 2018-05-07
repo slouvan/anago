@@ -18,47 +18,82 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
                  char_feature=True,
                  vocab_init=None,
                  padding=True,
-                 return_lengths=False):
+                 return_lengths=False, ner_feature=False):
 
         self.lowercase = lowercase
         self.num_norm = num_norm
         self.char_feature = char_feature
+        self.ner_feature = ner_feature
         self.padding = padding
         self.return_lengths = return_lengths
         self.vocab_word = None
         self.vocab_char = None
+        self.vocab_ner_feature = None
         self.vocab_tag  = None
         self.vocab_init = vocab_init or {}
 
     def fit(self, X, y):
         words = {PAD: 0, UNK: 1}
         chars = {PAD: 0, UNK: 1}
+        ners = {PAD : 0, UNK : 1}
         tags  = {PAD: 0, UNK: 1}
-        print(self.lowercase)
-        for w in set(itertools.chain(*X)) | set(self.vocab_init):
-            w = self._lower(w)
-            w = self._normalize_num(w)
-            if w not in words:
-                words[w] = len(words)
+        if not self.ner_feature:
+            for w in set(itertools.chain(*X)) | set(self.vocab_init):
+                w = self._lower(w)
+                w = self._normalize_num(w)
+                if w not in words:
+                    words[w] = len(words)
 
-            if not self.char_feature:
-                continue
-            for c in w:
-                if c not in chars:
-                    chars[c] = len(chars)
+                if not self.char_feature:
+                    continue
+                for c in w:
+                    if c not in chars:
+                        chars[c] = len(chars)
 
 
-        for t in itertools.chain(*y):
-            if t not in tags:
-                tags[t] = len(tags)
-        #print("VOCAB BOSTON : {}".format(words['Boston']))
+            for t in itertools.chain(*y):
+                if t not in tags:
+                    tags[t] = len(tags)
 
-        self.vocab_word = words
-        self.vocab_char = chars
-        self.vocab_tag  = tags
-        print("vocab char {}".format(self.vocab_char))
-        print("vocab tag {}".format(self.vocab_tag))
-        return self
+            self.vocab_word = words
+            self.vocab_char = chars
+            self.vocab_tag  = tags
+            print("vocab char {}".format(self.vocab_char))
+            print("vocab tag {}".format(self.vocab_tag))
+            return self
+        else:
+            sents = [ data[0] for data in X]
+            ner_feats = [data[1] for data in X]
+
+            for w in set(itertools.chain(*sents)) | set(self.vocab_init):
+                w = self._lower(w)
+                w = self._normalize_num(w)
+                if w not in words:
+                    words[w] = len(words)
+
+                if not self.char_feature:
+                    continue
+                for c in w:
+                    if c not in chars:
+                        chars[c] = len(chars)
+
+            for ner_feat in set(itertools.chain(*ner_feats)):
+                if ner_feat not in ners:
+                    ners[ner_feat] = len(ners)
+
+            for t in itertools.chain(*y):
+                if t not in tags:
+                    tags[t] = len(tags)
+
+            self.vocab_word = words
+            self.vocab_char = chars
+            self.vocab_tag  = tags
+            self.vocab_ner_feature = ners
+            print("vocab char {}".format(self.vocab_char))
+            print("vocab tag {}".format(self.vocab_tag))
+            print("vocab ner_feature {}".format(self.vocab_ner_feature))
+
+            return self
 
     def transform(self, X, y=None):
         """transforms input(s)
@@ -91,48 +126,114 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
         words = []
         chars = []
         lengths = []
-        for sent in X:
-            word_ids = []
-            char_ids = []
-            lengths.append(len(sent))
-            for w in sent:
+        ners = []
+        if not self.ner_feature :
+            for sent in X:
+                word_ids = []
+                char_ids = []
+                lengths.append(len(sent))
+                for w in sent:
+                    if self.char_feature:
+                        char_ids.append(self._get_char_ids(w))
+
+                    w = self._lower(w)
+                    w = self._normalize_num(w)
+                    if w in self.vocab_word:
+                        word_id = self.vocab_word[w]
+                    else:
+                        word_id = self.vocab_word[UNK]
+                    word_ids.append(word_id)
+
+                words.append(word_ids)
                 if self.char_feature:
-                    char_ids.append(self._get_char_ids(w))
+                    chars.append(char_ids)
 
-                w = self._lower(w)
-                w = self._normalize_num(w)
-                if w in self.vocab_word:
-                    word_id = self.vocab_word[w]
-                else:
-                    word_id = self.vocab_word[UNK]
-                word_ids.append(word_id)
+            if y is not None:
+                #y = [[self.vocab_tag[t] for t in sent] for sent in y]
+                y = [[self.vocab_tag[t] if t in self.vocab_tag else self.vocab_tag[UNK] for t in sent] for sent in y]
 
-            words.append(word_ids)
-            if self.char_feature:
-                chars.append(char_ids)
+            if self.padding:
+                #print("WORDS : {}".format(words))
+                #print("CHARS : {}".format(chars))
+                #print("NERS  : {}".format(ners))
+                sents, y = self.pad_sequence(words, chars, y)
+            else:
+                sents = [words, chars]
 
-        if y is not None:
-            #y = [[self.vocab_tag[t] for t in sent] for sent in y]
-            y = [[self.vocab_tag[t] if t in self.vocab_tag else self.vocab_tag[UNK] for t in sent] for sent in y]
+            if self.return_lengths:
+                #print("Di dalem return lengts {}".format(sents[0][0]))
+                lengths = np.asarray(lengths, dtype=np.int32)
+                #print("Di dalem return lengts LENGTH SHAPE {}".format(lengths.shape))
+                lengths = lengths.reshape((lengths.shape[0], 1))
+                #print("ISI LENGTH : {}".format(lengths))
+                # dimension of length (jumlah_training_data, 1) isinya : [[15], [33]]
+                sents.append(lengths)
+            #print("Di luar return lengths {}".format(sents[0]))
+            #print("X :{}".format(X[0]))
+            #print(y.shape)
 
-        if self.padding:
-            sents, y = self.pad_sequence(words, chars, y)
-        else:
-            sents = [words, chars]
+            return (sents, y) if y is not None else sents
+        else :
+            raw_sent = [data[0] for data in X]
+            ner_feat_sents = [data[1] for data in X]
+            for sent in raw_sent:
+                word_ids = []
+                char_ids = []
+                lengths.append(len(sent))
+                for w in sent:
+                    if self.char_feature:
+                        char_ids.append(self._get_char_ids(w))
 
-        if self.return_lengths:
-            #print("Di dalem return lengts {}".format(sents[0][0]))
-            lengths = np.asarray(lengths, dtype=np.int32)
-            #print("Di dalem return lengts LENGTH SHAPE {}".format(lengths.shape))
-            lengths = lengths.reshape((lengths.shape[0], 1))
-            #print("ISI LENGTH : {}".format(lengths))
-            # dimension of length (jumlah_training_data, 1) isinya : [[15], [33]]
-            sents.append(lengths)
-        #print("Di luar return lengths {}".format(sents[0]))
-        #print("X :{}".format(X[0]))
-        #print(y.shape)
+                    w = self._lower(w)
+                    w = self._normalize_num(w)
+                    if w in self.vocab_word:
+                        word_id = self.vocab_word[w]
+                    else:
+                        word_id = self.vocab_word[UNK]
+                    word_ids.append(word_id)
 
-        return (sents, y) if y is not None else sents
+                words.append(word_ids)
+                if self.char_feature:
+                    chars.append(char_ids)
+
+            for ner_feat_sent in ner_feat_sents:
+                ner_ids = []
+                for feat_value in ner_feat_sent:
+                    if feat_value in self.vocab_ner_feature:
+                        ner_id = self.vocab_ner_feature[feat_value]
+                    else :
+                        ner_id = self.vocab_ner_feature[UNK]
+                    ner_ids.append(ner_id)
+                ners.append(ner_ids)
+
+            if y is not None:
+                # y = [[self.vocab_tag[t] for t in sent] for sent in y]
+                y = [[self.vocab_tag[t] if t in self.vocab_tag else self.vocab_tag[UNK] for t in sent] for sent in y]
+
+            if self.padding:
+                #print("WORDS : {}".format(words))
+                #print("CHARS : {}".format(chars))
+                #print("NERS  : {}".format(ners))
+                if not self.ner_feature :
+                    sents, y = self.pad_sequence(words, chars, y)
+                else :
+                    sents, y = self.pad_sequence_with_ner(words, ners, chars, y)
+            else:
+                sents = [words, chars]
+
+            if self.return_lengths:
+                # print("Di dalem return lengts {}".format(sents[0][0]))
+                lengths = np.asarray(lengths, dtype=np.int32)
+                # print("Di dalem return lengts LENGTH SHAPE {}".format(lengths.shape))
+                lengths = lengths.reshape((lengths.shape[0], 1))
+                # print("ISI LENGTH : {}".format(lengths))
+                # dimension of length (jumlah_training_data, 1) isinya : [[15], [33]]
+                sents.append(lengths)
+            # print("Di luar return lengths {}".format(sents[0]))
+            # print("X :{}".format(X[0]))
+            # print(y.shape)
+
+            return (sents, y) if y is not None else sents
 
     def inverse_transform(self, y):
         indice_tag = {i: t for t, i in self.vocab_tag.items()}
@@ -180,6 +281,38 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
             #print("SHAPE INPUT WORD_IDS: {}   CHAR_IDS: {}".format(word_ids.shape, char_ids.shape ))
             # dimensi word_ids : (jml_training_data, max_panjang_kalimat) char_ids : (jml_training_data, max_panjang_kalimat, max_panjang_kata)
             return [word_ids, char_ids], labels
+        else:
+            return word_ids, labels
+
+    def pad_sequence_with_ner(self, word_ids, ner_ids, char_ids, labels=None):
+        if labels:
+            #print("LABELS 0 : {} length : {} ".format(labels, len(labels)))
+            labels, _ = pad_sequences(labels, 0)
+            labels = np.asarray(labels)
+            #print("LABELS 1 : {} length : {} ".format(labels, len(labels)))
+            labels = dense_to_one_hot(labels, len(self.vocab_tag), nlevels=2)
+            #print("LABELS 2 : {} length : {} SHAPE : {}".format(labels, len(labels), labels.shape))
+            # labels dimension (jumlah_training_data, max_panjang_kalimat, jumlah_label)
+
+        word_ids, sequence_lengths = pad_sequences(word_ids, 0)
+        word_ids = np.asarray(word_ids)
+        ner_ids, sequence_lengths = pad_sequences(ner_ids, 0)
+        ner_ids = np.asarray(ner_ids)
+
+        #print("Njero pad_sequence {} ".format(word_ids[0])) # Numpy array [[1,2,3], [4,5,6]]
+        #print("Type : {} ".format(type(word_ids[0]) ))  # [[1,2,3], [4,5,6]]
+        #print("SHAPE 1 : {}".format(word_ids.shape))
+
+        #print("LABEL : {}".format(labels[0]))
+        if self.char_feature:
+            char_ids, word_lengths = pad_sequences(char_ids, pad_tok=0, nlevels=2)
+            char_ids = np.asarray(char_ids)
+            #print("SHAPE INPUT WORD_IDS: {}   CHAR_IDS: {}".format(word_ids.shape, char_ids.shape ))
+            # dimensi word_ids : (jml_training_data, max_panjang_kalimat) char_ids : (jml_training_data, max_panjang_kalimat, max_panjang_kata)
+            if not self.ner_feature :
+                return [word_ids, char_ids], labels
+            else:
+                return [word_ids, ner_ids, char_ids], labels
         else:
             return word_ids, labels
 
@@ -268,8 +401,8 @@ def dense_to_one_hot(labels_dense, num_classes, nlevels=1):
         raise ValueError('nlevels can take 1 or 2, not take {}.'.format(nlevels))
 
 
-def prepare_preprocessor(X, y, use_char=True, vocab_init=None):
-    p = WordPreprocessor(char_feature=use_char, vocab_init=vocab_init)
+def prepare_preprocessor(X, y, use_char=True, vocab_init=None, ner_feature = False):
+    p = WordPreprocessor(char_feature=use_char, vocab_init=vocab_init, ner_feature = ner_feature)
     p.fit(X, y)
 
     return p
