@@ -299,7 +299,6 @@ class F1score(Callback):
                 break
             y_true = label
             #print(y_true[0])
-
             y_true = np.argmax(y_true, -1)
             sequence_lengths = data[-1] # shape of (batch_size, 1)
             sequence_lengths = np.reshape(sequence_lengths, (-1,))

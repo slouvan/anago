@@ -273,10 +273,8 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
 
         #print("LABEL : {}".format(labels[0]))
         if self.char_feature:
-            print("Padding chars ")
             char_ids, word_lengths = pad_sequences(char_ids, pad_tok=0, nlevels=2)
-            import sys
-            sys.exit(1)
+
             char_ids = np.asarray(char_ids)
             #print("SHAPE INPUT WORD_IDS: {}   CHAR_IDS: {}".format(word_ids.shape, char_ids.shape ))
             # dimensi word_ids : (jml_training_data, max_panjang_kalimat) char_ids : (jml_training_data, max_panjang_kalimat, max_panjang_kata)
@@ -354,9 +352,6 @@ def pad_sequences(sequences, pad_tok, nlevels=1):
     Returns:
         a list of list where each sublist has same length.
     """
-    print("TYPE {}".format(type(sequences)))
-    print("LEN {}".format(len(sequences)))
-    print("SEQUENCES {}".format(sequences))
     if nlevels == 1:
         max_length = len(max(sequences, key=len))
         sequence_padded, sequence_length = _pad_sequences(sequences, pad_tok, max_length)
