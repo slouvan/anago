@@ -1,7 +1,14 @@
 import os
 
 import numpy as np
+# Required, as usual
+from keras.models import load_model
 
+# Recommended method; requires knowledge of the underlying architecture of the model
+from keras_contrib.layers.advanced_activations import PELU
+
+# Not recommended; however this will correctly find the necessary contrib modules
+from keras_contrib import *
 from anago.config import ModelConfig, TrainingConfig
 from anago.evaluator import Evaluator
 from anago.models import SeqLabeling

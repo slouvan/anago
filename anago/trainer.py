@@ -74,8 +74,10 @@ class Trainer(object):
                                                 preprocessor=self.preprocessor)
 
 
-        self.model.compile(loss=self.model.crf.loss,
-                           optimizer=Adam(lr=self.training_config.learning_rate),
+        #self.model.compile(loss=self.model.crf.loss,
+        #                   optimizer=Adam(lr=self.training_config.learning_rate),
+        self.model.compile(loss=self.model.crf.loss_function,
+                                              optimizer=Adam(lr=self.training_config.learning_rate),
                            )
         print("METRICS : {}".format(self.model.metrics_names))
         # Prepare callbacks

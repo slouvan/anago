@@ -12,9 +12,10 @@ import keras.backend as K
 from keras.layers import Dense, LSTM, Bidirectional, Embedding, Input, Dropout, Lambda
 from keras.layers.merge import Concatenate
 from keras.models import Model
-
-from anago.layers import ChainCRF
-
+# Not recommended; however this will correctly find the necessary contrib modules
+from keras_contrib import *
+#from anago.layers import ChainCRF
+from keras_contrib.layers import CRF
 
 class BaseModel(object):
 
@@ -120,7 +121,8 @@ class SeqLabeling(BaseModel):
 
         x = Dense(config.num_word_lstm_units, activation='relu')(x)
         x = Dense(ntags)(x)
-        self.crf = ChainCRF()
+        #self.crf = ChainCRF()
+        self.crf = CRF(ntags)
         pred = self.crf(x)
 
         #sequence_lengths = Input(batch_shape=(None, 1), dtype='int32')
