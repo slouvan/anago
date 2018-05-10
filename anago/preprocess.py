@@ -95,6 +95,15 @@ class WordPreprocessor(BaseEstimator, TransformerMixin):
 
             return self
 
+    def update_vocab_tag(self, y):
+        tags = {PAD: 0, UNK: 1}
+
+        for t in itertools.chain(*y):
+            if t not in tags:
+                tags[t] = len(tags)
+
+        self.vocab_tag = tags
+
     def transform(self, X, y=None):
         """transforms input(s)
 

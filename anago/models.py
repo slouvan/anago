@@ -17,6 +17,9 @@ from keras_contrib import *
 #from anago.layers import ChainCRF
 from keras_contrib.layers import CRF
 
+from anago.layers import ChainCRF
+
+
 class BaseModel(object):
 
     def __init__(self, config, embeddings, ntags):
@@ -135,3 +138,21 @@ class SeqLabeling(BaseModel):
             print("WITHOUT CHARACTER MODELS.PY")
             self.model = Model(inputs=word_ids, outputs=pred)
 
+
+    def modify_model_for_transfer_learning(self):
+
+        self.model.layers.pop()
+        self.model.layers.pop()
+        self.model.layers.pop()
+
+        print("Chopping off the top one")
+        print(self.model.summary())
+
+        print("Modifying the top one")
+        x = Dense(self.config.num_word_lstm_units, activation='relu')(self.model.layers[-1].output)
+        print(self.ntags)
+        x = Dense(self.ntags)(x)
+        self.crf = ChainCRF()
+        pred = self.crf(x)
+        self.model = Model(inputs=self.model.input, outputs=[pred])
+        print(self.model.summary())

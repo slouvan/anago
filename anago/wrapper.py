@@ -68,10 +68,19 @@ class Sequence(object):
 
             self.conf = None
 
+    def update_training_config(self, file_name):
+        conf = self.load_config(file_name)
+
+        self.training_config = TrainingConfig(conf['batch_size'], conf['optimizer'], conf['learning_rate'],
+                                              conf['lr_decay'], conf['clip_gradients'], conf['max_epoch'],
+                                              conf['early_stopping'], conf['patience'], conf['train_embeddings'],
+                                              conf['max_checkpoints_to_keep'])
+        self.log_dir = conf['log_dir']
 
     def load_config(self, file_name):
         conf = utils.load_config_file(file_name)
         return conf
+
     def train(self, x_train, y_train, x_valid=None, y_valid=None, vocab_init=None):
         self.p = prepare_preprocessor(x_train, y_train, use_char=self.char_feature, vocab_init=vocab_init, ner_feature = self.ner_feature)
         embeddings = filter_embeddings(self.embeddings, self.p.vocab_word,
@@ -86,6 +95,21 @@ class Sequence(object):
                           self.training_config,
                           checkpoint_path=self.log_dir,
                           preprocessor=self.p)
+        trainer.train(x_train, y_train, x_valid, y_valid)
+
+    def modify_model_for_transfer_learning(self):
+        self.model.modify_model_for_transfer_learning()
+
+    def re_train(self,  x_train, y_train, x_valid=None, y_valid=None):
+        self.p.update_vocab_tag(y_train)
+        print(vars(self.training_config))
+        self.model.ntags = len(self.p.vocab_tag)
+        self.model_config.vocab_size = len(self.p.vocab_word)
+        self.model_config.char_vocab_size = len(self.p.vocab_char)
+        self.model.modify_model_for_transfer_learning()
+        print("LOG DIR : {}".format(self.log_dir))
+        trainer = Trainer(self.model, self.training_config, checkpoint_path=self.log_dir, preprocessor=self.p)
+
         trainer.train(x_train, y_train, x_valid, y_valid)
 
     def eval(self, x_test, y_test):
