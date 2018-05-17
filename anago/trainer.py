@@ -64,30 +64,28 @@ class Trainer(object):
 
     def train(self, x_train, y_train, x_valid=None, y_valid=None):
 
-        train_steps, train_batches = batch_iter(x_train,
-                                                y_train,
-                                                self.training_config.batch_size,
-                                                preprocessor=self.preprocessor)
-        valid_steps, valid_batches = batch_iter(x_valid,
-                                                y_valid,
-                                                self.training_config.batch_size,
-                                                preprocessor=self.preprocessor)
+        train_steps, train_batches  = batch_iter(x_train,y_train, self.training_config.batch_size,preprocessor=self.preprocessor)
 
+
+        valid_steps, valid_batches  = batch_iter(x_valid,
+                                                y_valid,
+                                                len(x_valid), shuffle=False,
+                                                preprocessor=self.preprocessor)
 
         #self.model.compile(loss=self.model.crf.loss,
         #                   optimizer=Adam(lr=self.training_config.learning_rate),
-        self.model.compile(loss=self.model.crf.loss_function,
-                                              optimizer=Adam(lr=self.training_config.learning_rate),
-                           )
+        self.model.compile(loss=self.model.crf.loss_function, optimizer=Adam(lr=self.training_config.learning_rate),)
         print("METRICS : {}".format(self.model.metrics_names))
         # Prepare callbacks
 
         print("Checkpoint : {}".format(self.checkpoint_path))
+
         callbacks = get_callbacks(log_dir=self.checkpoint_path,
                                   tensorboard=self.tensorboard,
                                   eary_stopping=self.training_config.early_stopping,
                                   valid=(valid_steps, valid_batches, self.preprocessor))
 
+        print("Callback :  {}".format(callbacks))
 
         history = self.model.fit_generator(generator=train_batches,
                                  steps_per_epoch=train_steps,
