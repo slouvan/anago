@@ -103,19 +103,23 @@ class Sequence(object):
     def re_train(self,  x_train, y_train, x_valid=None, y_valid=None):
         self.p.update_vocab_tag(y_train)
         print(vars(self.training_config))
+        print("Number of labels : {}".format(len(self.p.vocab_tag)))
         self.model.ntags = len(self.p.vocab_tag)
         self.model_config.vocab_size = len(self.p.vocab_word)
         self.model_config.char_vocab_size = len(self.p.vocab_char)
-        self.model.modify_model_for_transfer_learning()
+        print(type(self.model))
+        self.model.modify_model_for_transfer_learning_v2()
+        print(self.model.model.summary())
         print("LOG DIR : {}".format(self.log_dir))
         trainer = Trainer(self.model, self.training_config, checkpoint_path=self.log_dir, preprocessor=self.p)
 
         trainer.train(x_train, y_train, x_valid, y_valid)
 
-    def eval(self, x_test, y_test):
+    def eval(self, x_test, y_test, out_file_name=None):
+        print("Inside eval {}".format(self.model))
         if self.model:
             evaluator = Evaluator(self.model, preprocessor=self.p)
-            evaluator.eval(x_test, y_test)
+            evaluator.eval(x_test, y_test, out_file_name=out_file_name)
         else:
             raise (OSError('Could not find a model. Call load(dir_path).'))
 
@@ -165,14 +169,23 @@ class Sequence(object):
         return self
 
     @classmethod
-    def load_best_model(cls, dir_path):
+    def load_best_model(cls, model, dir_path):
         self = cls()
         self.p = WordPreprocessor.load(os.path.join(dir_path, cls.preprocessor_file))
         print("PREPROCESSOR FILE : {}".format(os.path.join(dir_path, cls.preprocessor_file)))
+        print("Aloha")
+
         config = ModelConfig.load(os.path.join(dir_path, cls.config_file))
         dummy_embeddings = np.zeros((config.vocab_size, config.word_embedding_size), dtype=np.float32)
-        self.model = SeqLabeling(config, dummy_embeddings, ntags=len(self.p.vocab_tag))
+        print(model)
+
+        if model is None :
+            self.model = SeqLabeling(config, dummy_embeddings, ntags=len(self.p.vocab_tag))
+        else :
+            self.model = model
+
+        #self.model.modify_model_for_transfer_learning_v2()
         best_model_file_name = utils.get_best_model_file(dir_path)
         self.model.load(filepath=os.path.join(dir_path, best_model_file_name))
-
+        print("Model : {}".format(self.model))
         return self

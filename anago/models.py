@@ -158,8 +158,20 @@ class SeqLabeling(BaseModel):
         print(self.model.summary())
 
     def modify_model_for_transfer_learning_v2(self):
-        print("VERSION 2 Guys")
+
         self.model.layers.pop()
-        self.model.layers.pop()
-        self.model.layers.pop()
+        #self.model.layers.pop()
+        #self.model.layers.pop()
+
+        print("Chopping off the top one")
+        print(self.model.summary())
+
+        print("Modifying the top one")
+        x = Dense(self.config.num_word_lstm_units, activation='relu')(self.model.layers[-1].output)
+        print(self.ntags)
+        x = Dense(self.ntags)(x)
+        self.crf = CRF(self.ntags)
+        pred = self.crf(x)
+        self.model = Model(inputs=self.model.input, outputs=[pred])
+        print(self.model.summary())
 

@@ -260,7 +260,7 @@ def computeF1ScoreCONLL(correct_slots, pred_slots):
 
 class F1score(Callback):
 
-    def __init__(self, valid_steps, valid_batches, preprocessor=None,verbose = False):
+    def __init__(self, valid_steps, valid_batches, preprocessor=None,verbose = False, mode="dev", raw_data=None, out_file_name=None):
         super(F1score, self).__init__()
         self.valid_steps = valid_steps
         self.valid_batches = valid_batches
@@ -268,6 +268,9 @@ class F1score(Callback):
         self.f1s = []
         self.losses = []
         self.verbose = verbose
+        self.mode = mode
+        self.raw_data = raw_data
+        self.out_file_name = out_file_name
         print("F1score is constructed")
 
 
@@ -293,7 +296,7 @@ class F1score(Callback):
         print("Evaluating")
         all_y_true = []
         all_y_pred = []
-        #with open("/Users/slouvan/sandbox/anago/data/conll2003/en/ner/test.prediction.eval.txt", "a+") as f:
+
         for i, (data, label) in enumerate(self.valid_batches):
             if i == self.valid_steps:
                 break
@@ -306,6 +309,7 @@ class F1score(Callback):
             #print("EPOCH END : TYPE : {} LEN : {} SHAPE : {} {}".format(type(data), len(data),data[0].shape,data[1].shape))
             y_pred = self.model.predict_on_batch(data)
             y_pred = np.argmax(y_pred, -1)
+            #print("LEN of data : {}".format(len(data)))
 
             #print("TYPE INSIDE ITERATION {}:".format(type(data)))
             #print(data)
@@ -317,6 +321,7 @@ class F1score(Callback):
             #print("Sequence length shape NEW : {}".format(seq_lengths.shape))
             y_pred = [self.p.inverse_transform(y[:l]) for y, l in zip(y_pred, seq_lengths)]
             y_true = [self.p.inverse_transform(y[:l]) for y, l in zip(y_true, seq_lengths)]
+
             #print(data)
             #print(type(y_true))
             #print(y_true)
@@ -339,8 +344,19 @@ class F1score(Callback):
 
         #f1 = self._calc_f1(correct_preds, total_correct, total_preds)
 
+
         print(' Evaluation - f1: {:04.2f}'.format(f1))
         self.f1s.append(f1)
+        if self.out_file_name is not None :
+            with open(self.out_file_name, "w")  as f:
+                for i, sent in enumerate(self.raw_data):
+                    pred = all_y_pred[i]
+                    gold = all_y_true[i]
+                    for j, token in enumerate(sent):
+                        f.write("{} {} {}\n".format(token, gold[j], pred[j]))
+                    f.write("\n")
+
+            os.system("perl conlleval.pl < "+str(self.out_file_name))
         logs['f1'] = f1
         #print("On validation {} {}".format(logs['f1'], logs['loss']))
         #self.losses.append(logs['loss'])

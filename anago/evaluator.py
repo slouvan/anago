@@ -12,7 +12,7 @@ class Evaluator(object):
         self.model = model
         self.preprocessor = preprocessor
 
-    def eval(self, x_test, y_test):
+    def eval(self, x_test, y_test, out_file_name=None):
 
         # Prepare test data(steps, generator)
         train_steps, train_batches = batch_iter(x_test,
@@ -22,6 +22,6 @@ class Evaluator(object):
                                                 preprocessor=self.preprocessor)
 
         # Build the evaluator and evaluate the model
-        f1score = F1score(train_steps, train_batches, self.preprocessor)
+        f1score = F1score(train_steps, train_batches, self.preprocessor, mode="test", raw_data=x_test, out_file_name=out_file_name)
         f1score.model = self.model
         f1score.on_epoch_end(epoch=-1)  # epoch takes any integer.
