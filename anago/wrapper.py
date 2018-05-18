@@ -141,19 +141,27 @@ class Sequence(object):
         if self.conf is not None:
             utils.clean_dir(self.conf['log_dir'])
             self.p.save(os.path.join(self.conf['log_dir'], self.preprocessor_file))
+            self.model_config.vocab_size = len(self.p.vocab_word)
+            self.model_config.char_vocab_size = len(self.p.vocab_char)
             self.model_config.save(os.path.join(self.conf['log_dir'], self.config_file))
             self.model.save(os.path.join(self.conf['log_dir'], self.weight_file))
         else:
             self.p.save(os.path.join(dir_path, self.preprocessor_file))
+            self.model_config.vocab_size = len(self.p.vocab_word)
+            self.model_config.char_vocab_size = len(self.p.vocab_char)
             self.model_config.save(os.path.join(dir_path, self.config_file))
             self.model.save(os.path.join(dir_path, self.weight_file))
 
     def save_config(self, dir_path =''):
         if self.conf is not None:
             self.p.save(os.path.join(self.conf['log_dir'], self.preprocessor_file))
+            self.model_config.vocab_size = len(self.p.vocab_word)
+            self.model_config.char_vocab_size = len(self.p.vocab_char)
             self.model_config.save(os.path.join(self.conf['log_dir'], self.config_file))
         else:
             self.p.save(os.path.join(dir_path, self.preprocessor_file))
+            self.model_config.vocab_size = len(self.p.vocab_word)
+            self.model_config.char_vocab_size = len(self.p.vocab_char)
             self.model_config.save(os.path.join(dir_path, self.config_file))
 
     @classmethod
@@ -169,22 +177,22 @@ class Sequence(object):
         return self
 
     @classmethod
-    def load_best_model(cls, model, dir_path):
+    def load_best_model(cls,  dir_path, model=None):
         self = cls()
         self.p = WordPreprocessor.load(os.path.join(dir_path, cls.preprocessor_file))
         print("PREPROCESSOR FILE : {}".format(os.path.join(dir_path, cls.preprocessor_file)))
         print("Aloha")
 
         config = ModelConfig.load(os.path.join(dir_path, cls.config_file))
+        #print("CONFIG : {}".format(config.vocab_size))
+
         dummy_embeddings = np.zeros((config.vocab_size, config.word_embedding_size), dtype=np.float32)
-        print(model)
 
         if model is None :
             self.model = SeqLabeling(config, dummy_embeddings, ntags=len(self.p.vocab_tag))
         else :
             self.model = model
 
-        #self.model.modify_model_for_transfer_learning_v2()
         best_model_file_name = utils.get_best_model_file(dir_path)
         self.model.load(filepath=os.path.join(dir_path, best_model_file_name))
         print("Model : {}".format(self.model))

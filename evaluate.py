@@ -29,7 +29,7 @@ if __name__ == "__main__":
     model = anago.Sequence(config_file=args.config_filename)
 
     # load the best model that gives best performance in dev then evaluate on test
-    model = model.load_best_model(None,cfg['log_dir'])
+    model = model.load_best_model(cfg['log_dir'])
 
     print("Evaluation on DEV SET : ")
     model.eval(x_dev, y_dev, out_file_name=os.path.join(cfg['log_dir'],"dev_pred.txt"))

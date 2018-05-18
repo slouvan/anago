@@ -32,7 +32,7 @@ if __name__ == "__main__":
     model = anago.Sequence(config_file=args.config_filename)
     model.train(x_train, y_train, x_dev, y_dev)
     model.save_config(cfg['log_dir'])
-    model.load_best_model(None,cfg['log_dir'])
+    model.load_best_model(cfg['log_dir'])
 
     model.eval(x_dev, y_dev, out_file_name=os.path.join(cfg['log_dir'], "dev_pred.txt"))
 

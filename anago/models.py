@@ -167,7 +167,7 @@ class SeqLabeling(BaseModel):
         print(self.model.summary())
 
         print("Modifying the top one")
-        x = Dense(self.config.num_word_lstm_units, activation='relu')(self.model.layers[-1].output)
+        x = Dense(self.config.num_word_lstm_units + self.ntags, activation='relu')(self.model.layers[-1].output)
         print(self.ntags)
         x = Dense(self.ntags)(x)
         self.crf = CRF(self.ntags)
