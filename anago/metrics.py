@@ -352,9 +352,14 @@ class F1score(Callback):
                 for i, sent in enumerate(self.raw_data):
                     pred = all_y_pred[i]
                     gold = all_y_true[i]
-                    for j, token in enumerate(sent):
-                        f.write("{} {} {}\n".format(token, gold[j], pred[j]))
-                    f.write("\n")
+                    if type(sent[0]) is str :
+                        for j, token in enumerate(sent):
+                            f.write("{} {} {}\n".format(token, gold[j], pred[j]))
+                        f.write("\n")
+                    else :
+                        for j, token in enumerate(sent[0]):
+                            f.write("{} {} {}\n".format(token, gold[j], pred[j]))
+                        f.write("\n")
 
             os.system("perl conlleval.pl < "+str(self.out_file_name))
         logs['f1'] = f1

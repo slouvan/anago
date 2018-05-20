@@ -32,9 +32,13 @@ if __name__ == "__main__":
     model = anago.Sequence(config_file=args.config_filename)
     model.train(x_train, y_train, x_dev, y_dev)
     model.save_config(cfg['log_dir'])
-    model.load_best_model(cfg['log_dir'])
+    model = model.load_best_model(cfg['log_dir'])
 
     model.eval(x_dev, y_dev, out_file_name=os.path.join(cfg['log_dir'], "dev_pred.txt"))
 
     # load the best model that gives best performance in dev then evaluate on test
     model.eval(x_test, y_test, out_file_name=os.path.join(cfg['log_dir'], "test_pred.txt"))
+
+
+
+
